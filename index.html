@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Fractionné Running — Mobile</title>
+  <!-- PWA manifest + couleurs thème (auto clair/sombre) -->
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111827" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <style>
+    :root{
+      --bg:#0b0f19;
+      --panel:#111827;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --primary:#ef4444;
+      --accent:#22c55e;
+      --info:#3b82f6;
+      --purple:#8b5cf6;
+      --warning:#f59e0b;
+      --border:#1f2937;
+      --input:#0c121d;
+    }
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg:#f6f7fb;
+        --panel:#ffffff;
+        --text:#0b0f19;
+        --muted:#6b7280;
+        --border:#e5e7eb;
+        --input:#f3f4f6;
+      }
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Helvetica,Arial,sans-serif;
+      color:var(--text); background:linear-gradient(180deg, var(--bg), var(--bg) 30%, var(--bg));
+      -webkit-tap-highlight-color: transparent;
+    }
+    header{position:sticky;top:0;z-index:10;background:rgba(0,0,0,.06);backdrop-filter: blur(10px); border-bottom:1px solid var(--border)}
+    .wrap{max-width:860px;margin:0 auto;padding:16px}
+    h1{margin:0;font-size:22px;letter-spacing:.3px}
+    .sub{color:var(--muted);font-size:12px}
+
+    .card{background:var(--panel);border:1px solid var(--border);border-radius:16px; padding:14px}
+    .grid{display:grid; gap:10px}
+    .g2{grid-template-columns:repeat(2,1fr)}
+    .g3{grid-template-columns:repeat(3,1fr)}
+    @media(min-width:720px){.g2-md{grid-template-columns:repeat(2,1fr)}}
+
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+    input[type=number]{width:100%; padding:12px 12px; border-radius:12px; border:1px solid var(--border); background:var(--input); color:var(--text); font-size:16px}
+    input[type=checkbox]{transform:scale(1.2)}
+    .row{display:flex; gap:10px; align-items:center}
+
+    .btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; border:1px solid var(--border); background:var(--input); color:var(--text); padding:12px 14px; border-radius:12px; font-weight:600; text-decoration:none; user-select:none}
+    .btn:active{transform:translateY(1px)}
+    .btn.primary{background:var(--primary);border-color:#b91c1c;color:white}
+    .btn.green{background:var(--accent); border-color:#15803d; color:white}
+    .btn.blue{background:var(--info); border-color:#1d4ed8; color:white}
+    .btn.gray{background:var(--panel)}
+    .btn.warn{background:var(--warning); border-color:#b45309; color:black}
+    .btn.full{width:100%}
+
+    .presets{display:flex; gap:8px; flex-wrap:wrap}
+    .chip{padding:8px 10px; border-radius:999px; background:var(--input); border:1px dashed var(--border); font-size:13px}
+    .chip button{all:unset; cursor:pointer; font-weight:700}
+
+    .timer{display:grid; gap:12px; text-align:center}
+    .phase{font-weight:800; letter-spacing:.6px; text-transform:uppercase}
+    .time{font-variant-numeric:tabular-nums; font-size:62px; line-height:1; font-weight:900}
+    .sets{font-size:13px; color:var(--muted)}
+
+    .bar{height:12px; background:var(--input); border:1px solid var(--border); border-radius:999px; overflow:hidden}
+    .bar > div{height:100%; width:0%; background:linear-gradient(90deg,var(--primary),var(--accent)); transition:width .15s linear}
+
+    .phase-warmup{color:var(--info)}
+    .phase-effort{color:var(--primary)}
+    .phase-rest{color:var(--accent)}
+    .phase-cooldown{color:var(--purple)}
+    .phase-done{color:inherit}
+
+    .toggles{display:flex; gap:10px; flex-wrap:wrap}
+    .toggle{display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:10px; border:1px solid var(--border); background:var(--input); font-size:14px}
+
+    footer{opacity:.7; font-size:12px; padding:10px 0 22px; text-align:center}
+    .hint{color:var(--muted); font-size:12px}
+    .total{font-weight:700}
+
+    .install{display:none}
+    .install.show{display:inline-flex}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap" style="display:flex;align-items:center;gap:10px;justify-content:space-between">
+      <div>
+        <h1>Fractionné Running</h1>
+        <div class="sub">Appli mobile simple pour le fractionné (course à pied) — PWA</div>
+      </div>
+      <div class="toggles">
+        <button id="installBtn" class="btn blue install">📲 Installer l’app</button>
+        <label class="toggle"><input id="soundToggle" type="checkbox" checked> Son</label>
+        <label class="toggle"><input id="speechToggle" type="checkbox" checked> Voix</label>
+        <label class="toggle"><input id="vibeToggle" type="checkbox" checked> Vibration</label>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap" style="display:grid;gap:14px">
+    <section class="card grid g2-md" aria-labelledby="settings-title">
+      <div class="grid g2">
+        <div>
+          <label for="warmup">Échauffement (sec)</label>
+          <input id="warmup" type="number" inputmode="numeric" min="0" step="5" value="120" />
+        </div>
+        <div>
+          <label for="cooldown">Retour au calme (sec)</label>
+          <input id="cooldown" type="number" inputmode="numeric" min="0" step="5" value="60" />
+        </div>
+        <div>
+          <label for="effort">Effort (sec)</label>
+          <input id="effort" type="number" inputmode="numeric" min="1" step="1" value="30" />
+        </div>
+        <div>
+          <label for="rest">Repos (sec)</label>
+          <input id="rest" type="number" inputmode="numeric" min="0" step="1" value="30" />
+        </div>
+        <div>
+          <label for="sets">Répétitions (nb)</label>
+          <input id="sets" type="number" inputmode="numeric" min="1" step="1" value="10" />
+        </div>
+        <div>
+          <label for="includeRest">Repos entre efforts</label>
+          <div class="row"><input id="includeRest" type="checkbox" checked> <span class="hint">Décoche pour enchaîner les efforts</span></div>
+        </div>
+      </div>
+
+      <div class="grid" style="align-content:start">
+        <div class="presets">
+          <span class="chip">30/30 ×10 <button data-preset='{"warmup":120,"effort":30,"rest":30,"sets":10,"cooldown":60}'>Appliquer</button></span>
+          <span class="chip">45/15 ×10 <button data-preset='{"warmup":120,"effort":45,"rest":15,"sets":10,"cooldown":60}'>Appliquer</button></span>
+          <span class="chip">1′/1′ ×8 <button data-preset='{"warmup":180,"effort":60,"rest":60,"sets":8,"cooldown":120}'>Appliquer</button></span>
+          <span class="chip">Tabata 20/10 ×8 <button data-preset='{"warmup":60,"effort":20,"rest":10,"sets":8,"cooldown":60}'>Appliquer</button></span>
+          <span class="chip">30/15 ×12 <button data-preset='{"warmup":120,"effort":30,"rest":15,"sets":12,"cooldown":60}'>Appliquer</button></span>
+          <span class="chip">Pyramide 30-45-60-45-30 <button data-preset='{"warmup":120,"effortPattern":[30,45,60,45,30],"rest":30,"cooldown":90}'>Appliquer</button></span>
+          <span class="chip">Pyramide 1′-2′-3′-2′-1′ <button data-preset='{"warmup":180,"effortPattern":[60,120,180,120,60],"rest":60,"cooldown":180}'>Appliquer</button></span>
+        </div>
+        <div class="hint">Astuce : tes réglages sont mémorisés automatiquement (localStorage). Les presets « Pyramide » utilisent des efforts de durées différentes.</div>
+        <div class="total">Durée totale : <span id="totalTime">—:—</span></div>
+      </div>
+    </section>
+
+    <section class="card timer" aria-live="polite">
+      <div id="phase" class="phase">Prêt</div>
+      <div id="time" class="time">00:00</div>
+      <div id="setsInfo" class="sets">—</div>
+      <div class="bar" aria-hidden="true"><div id="progress"></div></div>
+
+      <div class="grid g3">
+        <button id="startBtn" class="btn primary full">Démarrer</button>
+        <button id="pauseBtn" class="btn warn full" disabled>Pause</button>
+        <button id="resetBtn" class="btn gray full" disabled>Réinitialiser</button>
+      </div>
+      <div class="grid g2">
+        <button id="prevBtn" class="btn blue full" disabled>⟵ Précédent</button>
+        <button id="nextBtn" class="btn green full" disabled>Suivant ⟶</button>
+      </div>
+      <div class="hint">Astuce : bascule en plein écran après démarrage (meilleure lisibilité). L’app garde l’écran actif si possible.</div>
+    </section>
+
+    <section class="card" style="line-height:1.5">
+      <strong>Conseils</strong><br/>
+      • Échauffe-toi 5–10 min avant un fractionné intense. <br/>
+      • Garde un effort régulier (RPE 7–9/10 selon la séance). <br/>
+      • Hydrate-toi et récupère 24–48 h entre grosses séances.
+    </section>
+  </main>
+
+  <footer>Fait avec ❤️ pour les coureurs. Fonctionne hors-ligne (PWA) après l’installation ou le 1er chargement.</footer>
+
+  <script>
+  const $ = sel => document.querySelector(sel);
+  const inputs = {
+    warmup: $('#warmup'),
+    cooldown: $('#cooldown'),
+    effort: $('#effort'),
+    rest: $('#rest'),
+    sets: $('#sets'),
+    includeRest: $('#includeRest')
+  };
+
+  const ui = {
+    phase: $('#phase'),
+    time: $('#time'),
+    setsInfo: $('#setsInfo'),
+    bar: $('#progress'),
+    start: $('#startBtn'),
+    pause: $('#pauseBtn'),
+    reset: $('#resetBtn'),
+    next: $('#nextBtn'),
+    prev: $('#prevBtn'),
+    total: $('#totalTime'),
+    soundToggle: $('#soundToggle'),
+    speechToggle: $('#speechToggle'),
+    vibeToggle: $('#vibeToggle'),
+    installBtn: $('#installBtn'),
+  };
+
+  let extraSettings = null;
+
+  function fmt(sec){
+    sec = Math.max(0, Math.round(sec));
+    const m = Math.floor(sec/60).toString().padStart(2,'0');
+    const s = (sec%60).toString().padStart(2,'0');
+    return `${m}:${s}`;
+  }
+
+  function loadSettings(){
+    try{
+      const raw = localStorage.getItem('fx_settings');
+      if(!raw) return;
+      const s = JSON.parse(raw);
+      for(const k in inputs){
+        if(k in s) {
+          if(inputs[k].type === 'checkbox') inputs[k].checked = !!s[k];
+          else inputs[k].value = s[k];
+        }
+      }
+      if(s && s._extra) extraSettings = s._extra; else extraSettings = null;
+    }catch(e){}
+  }
+
+  function saveSettings(){
+    const s = {};
+    for(const k in inputs){
+      s[k] = inputs[k].type === 'checkbox' ? inputs[k].checked : Number(inputs[k].value||0);
+    }
+    s._extra = extraSettings || null;
+    localStorage.setItem('fx_settings', JSON.stringify(s));
+    updateTotal();
+  }
+
+  function getSettings(){
+    const base = {
+      warmup: Number(inputs.warmup.value||0),
+      cooldown: Number(inputs.cooldown.value||0),
+      effort: Math.max(1, Number(inputs.effort.value||0)),
+      rest: Math.max(0, Number(inputs.rest.value||0)),
+      sets: Math.max(1, Number(inputs.sets.value||1)),
+      includeRest: inputs.includeRest.checked
+    };
+    if(extraSettings){
+      if(Array.isArray(extraSettings.effortPattern)) base.effortPattern = extraSettings.effortPattern.slice();
+      if(Array.isArray(extraSettings.restPattern)) base.restPattern = extraSettings.restPattern.slice();
+    }
+    return base;
+  }
+
+  function buildPlan(){
+    const {warmup, cooldown, effort, rest, sets, includeRest, effortPattern, restPattern} = getSettings();
+    const plan = [];
+    if(warmup>0) plan.push({type:'warmup', label:'Échauffement', dur:warmup});
+
+    const efforts = Array.isArray(effortPattern) && effortPattern.length ? effortPattern : Array(sets).fill(effort);
+    const rests = Array.isArray(restPattern) && restPattern.length ? restPattern : Array(Math.max(0, efforts.length-1)).fill(rest);
+
+    for(let i=0;i<efforts.length;i++){
+      const eDur = Math.max(1, Number(efforts[i]||effort));
+      plan.push({type:'effort', label:`Effort ${i+1}/${efforts.length}`, dur:eDur, set:i+1, sets:efforts.length});
+      const rDur = Number(rests[i] ?? rest);
+      const needRest = includeRest && i < efforts.length-1 && rDur>0;
+      if(needRest) plan.push({type:'rest', label:`Repos`, dur:rDur, set:i+1, sets:efforts.length});
+    }
+
+    if(cooldown>0) plan.push({type:'cooldown', label:'Retour au calme', dur:cooldown});
+    if(plan.length===0) plan.push({type:'done', label:'Terminé', dur:0});
+    return plan;
+  }
+
+  function calcTotal(){ return buildPlan().reduce((t,s)=>t+s.dur,0); }
+  function updateTotal(){ ui.total.textContent = fmt(calcTotal()); }
+
+  let audioCtx = null;
+  const soundEnabled = ()=> ui.soundToggle.checked;
+  const speechEnabled = ()=> ui.speechToggle.checked && 'speechSynthesis' in window;
+  const vibeEnabled = ()=> ui.vibeToggle.checked && 'vibrate' in navigator;
+
+  function beep(freq=880, duration=180){
+    if(!soundEnabled()) return;
+    try{
+      audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = 'sine'; o.frequency.value = freq;
+      o.connect(g); g.connect(audioCtx.destination);
+      const now = audioCtx.currentTime;
+      g.gain.setValueAtTime(0.001, now);
+      g.gain.exponentialRampToValueAtTime(0.1, now+0.01);
+      o.start(now);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + duration/1000);
+      o.stop(now + duration/1000 + 0.02);
+    }catch(e){}
+  }
+
+  function speak(text){
+    if(!speechEnabled()) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'fr-FR'; u.rate = 1.05; u.pitch = 1;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  }
+
+  function buzz(pattern=[120]){ if(vibeEnabled()) navigator.vibrate(pattern); }
+
+  let wakeLock = null;
+  async function requestWakeLock(){
+    if('wakeLock' in navigator){
+      try{ wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', ()=>{}); }catch(e){}
+    }
+  }
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && running) requestWakeLock(); });
+
+  let plan = [];
+  let idx = 0;
+  let segElapsed = 0;
+  let lastTs = null;
+  let running = false;
+  let rafId = null;
+
+  function setButtons(){
+    ui.pause.disabled = !running;
+    ui.reset.disabled = !running && idx===0 && segElapsed===0;
+    ui.next.disabled = !running;
+    ui.prev.disabled = !running;
+    ui.start.disabled = running;
+  }
+
+  function updateUI(){
+    const seg = plan[idx] || {type:'done',label:'Terminé',dur:0};
+    const rem = Math.max(0, (seg.dur - segElapsed));
+    ui.phase.className = `phase phase-${seg.type}`;
+    ui.phase.textContent = seg.label || 'Terminé';
+    ui.time.textContent = fmt(rem);
+
+    if(typeof seg.set === 'number'){
+      ui.setsInfo.textContent = `Série ${seg.set}/${seg.sets}`;
+    }else{
+      const doneSecs = plan.slice(0, idx).reduce((t,s)=>t+s.dur,0) + segElapsed;
+      const total = calcTotal();
+      const pctTotal = total? Math.min(100, Math.round(doneSecs/total*100)) : 0;
+      ui.setsInfo.textContent = `Progression ${pctTotal}%`;
+    }
+
+    const pct = (seg.dur>0) ? Math.min(100, (segElapsed/seg.dur)*100) : 100;
+    ui.bar.style.width = pct + '%';
+  }
+
+  function transition(nextIndex){
+    idx = nextIndex;
+    segElapsed = 0;
+    const cur = plan[idx];
+    if(!cur){
+      running = false; setButtons();
+      ui.phase.className = 'phase phase-done';
+      ui.phase.textContent = 'Terminé';
+      ui.time.textContent = '00:00';
+      ui.bar.style.width = '100%';
+      speak('Séance terminée, bravo !');
+      beep(660,120); setTimeout(()=>beep(880,180), 150);
+      buzz([200,80,200]);
+      document.exitFullscreen?.();
+      return;
+    }
+    buzz(60);
+    switch(cur.type){
+      case 'warmup': speak('Échauffement'); break;
+      case 'effort': speak(cur.label); beep(1100,200); break;
+      case 'rest': speak('Repos'); break;
+      case 'cooldown': speak('Retour au calme'); break;
+    }
+    updateUI();
+  }
+
+  function tick(ts){
+    if(!running){ cancelAnimationFrame(rafId); return; }
+    if(!lastTs) lastTs = ts;
+    const delta = (ts - lastTs)/1000;
+    lastTs = ts;
+
+    const seg = plan[idx];
+    if(!seg){ running=false; setButtons(); return; }
+
+    const prevRem = Math.max(0, Math.ceil(seg.dur - segElapsed));
+    segElapsed += delta;
+    const rem = Math.max(0, Math.ceil(seg.dur - segElapsed));
+
+    if(rem <= 3 && rem !== prevRem && rem>0){
+      beep(950,120);
+      speak(rem.toString());
+    }
+
+    if(segElapsed >= seg.dur){
+      beep(700,160);
+      transition(idx+1);
+    } else {
+      updateUI();
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function start(){
+    if(running) return;
+    try{ audioCtx?.resume(); }catch(e){}
+
+    plan = buildPlan();
+    idx = 0; segElapsed = 0; lastTs = null; running = true; setButtons(); updateUI();
+    if(document.fullscreenEnabled && window.innerHeight < 640){ document.documentElement.requestFullscreen?.().catch(()=>{}); }
+    requestWakeLock();
+    speak('Départ');
+    beep(1000,130);
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function pause(){ running = false; setButtons(); speak('Pause'); }
+  function resume(){ if(running) return; running = true; setButtons(); speak('Reprise'); lastTs = null; rafId = requestAnimationFrame(tick); }
+  function reset(){ running = false; plan = buildPlan(); idx=0; segElapsed=0; lastTs=null; setButtons(); updateUI(); speak('Réinitialisé'); }
+  function next(){ if(!running) return; transition(idx+1); }
+  function prev(){ if(!running) return; idx = Math.max(0, idx-1); segElapsed=0; updateUI(); speak('Retour'); }
+
+  Object.values(inputs).forEach(el=> el.addEventListener('input', ()=>{ extraSettings=null; saveSettings(); }));
+  document.querySelectorAll('[data-preset]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const p = JSON.parse(btn.getAttribute('data-preset'));
+      inputs.warmup.value = p.warmup ?? inputs.warmup.value;
+      inputs.cooldown.value = p.cooldown ?? inputs.cooldown.value;
+      inputs.effort.value = p.effort ?? inputs.effort.value;
+      inputs.rest.value = p.rest ?? inputs.rest.value;
+      inputs.sets.value = p.sets ?? (p.effortPattern ? p.effortPattern.length : inputs.sets.value);
+      extraSettings = null;
+      if(p.effortPattern || p.restPattern){
+        extraSettings = {effortPattern: p.effortPattern||null, restPattern: p.restPattern||null};
+      }
+      inputs.includeRest.checked = true;
+      saveSettings();
+      buzz(40); beep(820,90);
+      reset();
+    });
+  });
+
+  ui.start.addEventListener('click', start);
+  ui.pause.addEventListener('click', ()=> running ? pause() : resume());
+  ui.reset.addEventListener('click', reset);
+  ui.next.addEventListener('click', next);
+  ui.prev.addEventListener('click', prev);
+
+  ui.time.addEventListener('pointerdown', (e)=>{
+    let held = false;
+    const t = setTimeout(()=>{ held=true; running? pause():resume(); buzz(50); }, 500);
+    const clear = ()=>{ clearTimeout(t); ui.time.removeEventListener('pointerup', clear); ui.time.removeEventListener('pointerleave', clear); };
+    ui.time.addEventListener('pointerup', clear); ui.time.addEventListener('pointerleave', clear);
+  });
+
+  loadSettings();
+  updateTotal();
+  reset();
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+    });
+  }
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e)=>{
+    e.preventDefault();
+    deferredPrompt = e;
+    ui.installBtn.classList.add('show');
+  });
+  ui.installBtn?.addEventListener('click', async ()=>{
+    if(!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    ui.installBtn.classList.remove('show');
+  });
+  window.addEventListener('appinstalled', ()=>{
+    ui.installBtn?.classList.remove('show');
+  });
+  </script>
+</body>
+</html>
